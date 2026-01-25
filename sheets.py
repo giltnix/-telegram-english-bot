@@ -25,20 +25,18 @@ class SheetsLoader:
 
     def get_exercises(self):
         rows = self.sheet.get_all_records()
-
         exams = {"oge": {}, "ege": {}}
 
         for row in rows:
             exam = row["exam"].strip().lower()
             task = row["task"].strip()
             question = row["question"].strip()
-            options = [
-                row["A"].strip(),
-                row["B"].strip(),
-                row["C"].strip(),
-                row["D"].strip(),
-            ]
-            correct = row["correct"].strip().lower()
+            
+            # разделяем варианты ответа по ';'
+            options = [opt.strip() for opt in row["options"].split(";")]
+
+            # правильный ответ
+            correct = row["answer"].strip().upper()  # A, B, C
 
             exams.setdefault(exam, {}).setdefault(task, []).append({
                 "question": question,
