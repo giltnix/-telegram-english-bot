@@ -8,7 +8,6 @@ from config import BOT_TOKEN
 from sheets import SheetsLoader
 from keyboards import exam_keyboard, tasks_keyboard, answers_keyboard
 
-
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
@@ -21,7 +20,7 @@ user_state = {}
 @dp.message(CommandStart())
 async def start(message: types.Message):
     await message.answer(
-        "Привет! Выбери экзамен ",
+        "Привет! Выбери экзамен:",
         reply_markup=exam_keyboard()
     )
 
@@ -38,7 +37,7 @@ async def choose_exam(message: types.Message):
     )
 
 
-@dp.message(lambda m: m.text == "⬅️ Назад")
+@dp.message(lambda m: m.text == "Назад")
 async def back(message: types.Message):
     await message.answer(
         "Выбери экзамен:",
@@ -54,23 +53,28 @@ async def choose_task(message: types.Message):
 
     exercises = EXAMS.get(exam, {}).get(task)
     if not exercises:
-        await message.answer("Нет заданий ")
+        await message.answer("Нет заданий для этого задания.")
         return
 
     exercise = random.choice(exercises)
     user_state[user_id]["task"] = task
     user_state[user_id]["current"] = exercise
 
+    # Генерация текста с вариантами
     text = exercise["question"] + "\n\n"
-    text += f"A) {exercise['options'][0]}\n"
-    text += f"B) {exercise['options'][1]}\n"
-    text += f"C) {exercise['options'][2]}\n"
-    text += f"D) {exercise['options'][3]}"
+    letters = ["A", "B", "C", "D", "E", "F"]  # на всякий случай
+    for i, option in enumerate(exercise["options"]):
+        if i < len(letters):
+            text += f"{letters[i]}) {option}\n"
 
-    await message.answer(text, reply_markup=answers_keyboard())
+    # Генерация клавиатуры по фактическому количеству опций
+    await message.answer(
+        text,
+        reply_markup=answers_keyboard(len(exercise["options"]))
+    )
 
 
-@dp.message(lambda m: m.text in ["A", "B", "C", "D"])
+@dp.message(lambda m: m.text.upper() in ["A", "B", "C", "D", "E", "F"])
 async def check_answer(message: types.Message):
     user_id = message.from_user.id
     state = user_state.get(user_id)
@@ -79,18 +83,18 @@ async def check_answer(message: types.Message):
         return
 
     correct = state["current"]["correct"].upper()
-
-    if message.text == correct:
+    if message.text.upper() == correct:
         await message.answer(" Верно!")
     else:
         await message.answer(f" Неверно. Правильный ответ: {correct}")
 
-    del state["task"]
-    del state["current"]
+    # Очистка состояния текущей задачи
+    state.pop("task", None)
+    state.pop("current", None)
 
+    # Предложение следующего задания
     exam = state["exam"]
     tasks = list(EXAMS.get(exam, {}).keys())
-
     await message.answer(
         "Выбери следующее задание:",
         reply_markup=tasks_keyboard(tasks)
@@ -103,3 +107,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
