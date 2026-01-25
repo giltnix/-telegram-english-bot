@@ -11,9 +11,9 @@ class SheetsLoader:
             "https://www.googleapis.com/auth/drive"
         ]
 
-        creds_json = os.environ.get("GOOGLE_CREDS_JSON")
+        creds_json = os.environ.get("GOOGLE_CREDS_STRING")
         if not creds_json:
-            raise RuntimeError("GOOGLE_CREDS_JSON not found in env variables")
+            raise RuntimeError("GOOGLE_CREDS_STRING not found in env variables")
 
         creds_dict = json.loads(creds_json)
         creds = ServiceAccountCredentials.from_json_keyfile_dict(
