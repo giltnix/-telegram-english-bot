@@ -11,7 +11,7 @@ from keyboards import exam_keyboard, tasks_keyboard, answers_keyboard
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# Загружаем упражнения из Google Sheets
+# Загружаем упражнения
 loader = SheetsLoader("OGE/EGE")
 EXAMS = loader.get_exercises()
 
@@ -27,7 +27,6 @@ EXAM_MAP = {
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
-    """Стартовое сообщение"""
     await message.answer(
         "Привет! Выбери экзамен:",
         reply_markup=exam_keyboard()
@@ -36,9 +35,9 @@ async def start(message: types.Message):
 
 @dp.message(lambda m: m.text in EXAM_MAP)
 async def choose_exam(message: types.Message):
-    """Выбор экзамена"""
+    user_id = message.from_user.id
     exam_key = EXAM_MAP[message.text]
-    user_state[message.from_user.id] = {"exam": exam_key}
+    user_state[user_id] = {"exam": exam_key}
 
     tasks = list(EXAMS.get(exam_key, {}).keys())
     if not tasks:
@@ -53,7 +52,6 @@ async def choose_exam(message: types.Message):
 
 @dp.message(lambda m: m.text == "Назад")
 async def back(message: types.Message):
-    """Возврат к выбору экзамена"""
     user_state.pop(message.from_user.id, None)
     await message.answer(
         "Выбери экзамен:",
@@ -63,7 +61,6 @@ async def back(message: types.Message):
 
 @dp.message(lambda m: m.from_user.id in user_state and "task" not in user_state[m.from_user.id])
 async def choose_task(message: types.Message):
-    """Выбор конкретного задания"""
     user_id = message.from_user.id
     exam = user_state[user_id]["exam"]
     task = message.text
@@ -73,19 +70,18 @@ async def choose_task(message: types.Message):
         await message.answer("Нет заданий для этого задания.")
         return
 
-    # Случайное упражнение
     exercise = random.choice(exercises)
     user_state[user_id]["task"] = task
     user_state[user_id]["current"] = exercise
 
-    # Текст с вопросом и вариантами
+    # Формируем текст вопроса и вариантов
     text = exercise["question"] + "\n\n"
-    letters = ["A", "B", "C", "D", "E", "F"]  # максимум для клавиатуры
+    letters = ["A", "B", "C", "D", "E", "F"]
     for i, option in enumerate(exercise["options"]):
         if i < len(letters):
             text += f"{letters[i]}) {option}\n"
 
-    # Клавиатура для вариантов
+    # Отправляем вопрос с клавиатурой вариантов
     await message.answer(
         text,
         reply_markup=answers_keyboard(len(exercise["options"]))
@@ -94,7 +90,6 @@ async def choose_task(message: types.Message):
 
 @dp.message(lambda m: m.from_user.id in user_state)
 async def check_answer(message: types.Message):
-    """Проверка выбранного ответа"""
     user_id = message.from_user.id
     state = user_state.get(user_id)
 
@@ -105,7 +100,6 @@ async def check_answer(message: types.Message):
     correct = exercise["correct"].upper()
     user_answer = message.text.upper()
 
-    # Проверка
     if user_answer == correct:
         await message.answer("Верно!")
     else:
@@ -130,6 +124,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
