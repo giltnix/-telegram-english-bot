@@ -16,6 +16,11 @@ EXAMS = loader.get_exercises()
 
 user_state = {}
 
+EXAM_MAP = {
+    "ОГЭ": "oge",
+    "ЕГЭ": "ege"
+}
+
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
@@ -26,22 +31,21 @@ async def start(message: types.Message):
     )
 
 
-@dp.message(lambda m: m.text in ["ОГЭ", "ЕГЭ"])
+@dp.message(lambda m: m.text in EXAM_MAP)
 async def choose_exam(message: types.Message):
     user_id = message.from_user.id
-    exam = "oge" if message.text == "ОГЭ" else "ege"
+    exam_key = EXAM_MAP[message.text]
 
-    user_state[user_id] = {"exam": exam}
+    user_state[user_id] = {"exam": exam_key}
 
-    tasks = list(EXAMS[exam].keys())
-
+    tasks = list(EXAMS[exam_key].keys())
     await message.answer(
         "Выбери задание:",
         reply_markup=tasks_keyboard(tasks)
     )
 
 
-@dp.message(lambda m: m.text == "⬅️ Назад")
+@dp.message(lambda m: m.text == "Назад")
 async def back(message: types.Message):
     user_state.pop(message.from_user.id, None)
     await message.answer(
@@ -56,19 +60,19 @@ async def choose_task(message: types.Message):
     exam = user_state[user_id]["exam"]
     task = message.text
 
-    if task not in EXAMS[exam]:
+    exercises = EXAMS.get(exam, {}).get(task)
+    if not exercises:
+        await message.answer("Нет заданий для этого задания.")
         return
 
-    exercise = random.choice(EXAMS[exam][task])
+    exercise = random.choice(exercises)
     user_state[user_id]["current"] = exercise
 
-    text = (
-        f"{exercise['question']}\n\n"
-        f"A) {exercise['options'][0]}\n"
-        f"B) {exercise['options'][1]}\n"
-        f"C) {exercise['options'][2]}\n"
-        f"D) {exercise['options'][3]}"
-    )
+    # Динамический текст, только 3 варианта
+    text = exercise["question"] + "\n\n"
+    letters = ["A", "B", "C"]
+    for i in range(3):
+        text += f"{letters[i]}) {exercise['options'][i]}\n"
 
     await message.answer(
         text,
@@ -76,7 +80,7 @@ async def choose_task(message: types.Message):
     )
 
 
-@dp.message(lambda m: m.text in ["A", "B", "C", "D"])
+@dp.message(lambda m: m.text in ["A", "B", "C"])
 async def check_answer(message: types.Message):
     user_id = message.from_user.id
     state = user_state.get(user_id)
@@ -84,16 +88,20 @@ async def check_answer(message: types.Message):
     if not state or "current" not in state:
         return
 
-    correct = state["current"]["correct"]
+    correct = state["current"]["correct"].upper()
+    user_answer = message.text.upper()
 
-    if message.text == correct:
-        await message.answer("✅ Верно!")
+    if user_answer == correct:
+        await message.answer("Верно!")
     else:
-        await message.answer(f"❌ Неверно. Правильный ответ: {correct}")
+        await message.answer(f"Неверно. Правильный ответ: {correct}")
 
+    # Очистка текущего упражнения
     state.pop("current")
 
-    tasks = list(EXAMS[state["exam"]].keys())
+    # Следующее задание
+    exam = state["exam"]
+    tasks = list(EXAMS[exam].keys())
     await message.answer(
         "Выбери следующее задание:",
         reply_markup=tasks_keyboard(tasks)
@@ -106,6 +114,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
