@@ -14,8 +14,10 @@ def tasks_keyboard(tasks: list):
     return kb
 
 def answers_keyboard(n_options: int):
+    """Динамическая клавиатура для вариантов ответа (A, B, C...)"""
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
     letters = ["A", "B", "C", "D", "E", "F"][:n_options]
     for letter in letters:
         kb.add(KeyboardButton(letter))
     return kb
+
