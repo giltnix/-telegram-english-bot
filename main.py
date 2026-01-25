@@ -11,10 +11,18 @@ from keyboards import exam_keyboard, tasks_keyboard, answers_keyboard
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
+# Загружаем упражнения из Google Sheets
 loader = SheetsLoader("OGE/EGE")
 EXAMS = loader.get_exercises()
 
+# Состояние пользователей
 user_state = {}
+
+# Соответствие русских названий экзаменов ключам EXAMS
+EXAM_MAP = {
+    "ОГЭ": "oge",
+    "ЕГЭ": "ege"
+}
 
 
 @dp.message(CommandStart())
@@ -25,12 +33,16 @@ async def start(message: types.Message):
     )
 
 
-@dp.message(lambda m: m.text in ["ОГЭ", "ЕГЭ"])
+@dp.message(lambda m: m.text in EXAM_MAP)
 async def choose_exam(message: types.Message):
-    exam = message.text.lower()
-    user_state[message.from_user.id] = {"exam": exam}
+    exam_key = EXAM_MAP[message.text]
+    user_state[message.from_user.id] = {"exam": exam_key}
 
-    tasks = list(EXAMS.get(exam, {}).keys())
+    tasks = list(EXAMS.get(exam_key, {}).keys())
+    if not tasks:
+        await message.answer("Задания для этого экзамена не найдены.")
+        return
+
     await message.answer(
         "Выбери задание:",
         reply_markup=tasks_keyboard(tasks)
@@ -67,7 +79,7 @@ async def choose_task(message: types.Message):
         if i < len(letters):
             text += f"{letters[i]}) {option}\n"
 
-    # Генерация клавиатуры по фактическому количеству опций
+    # Генерация клавиатуры по количеству вариантов
     await message.answer(
         text,
         reply_markup=answers_keyboard(len(exercise["options"]))
@@ -107,4 +119,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
