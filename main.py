@@ -11,11 +11,14 @@ from keyboards import exam_keyboard, tasks_keyboard, answers_keyboard
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
+# Загружаем упражнения
 loader = SheetsLoader("OGE/EGE")
-EXAMS = loader.get_exercises()
+EXAMS = loader.get_exercises()  # формат: {"oge": {"Грамматические навыки": [...], ...}, "ege": {...}}
 
+# Состояние пользователя
 user_state = {}
 
+# Соответствие кнопок текста к ключам EXAMS
 EXAM_MAP = {
     "ОГЭ": "oge",
     "ЕГЭ": "ege"
@@ -38,14 +41,18 @@ async def choose_exam(message: types.Message):
 
     user_state[user_id] = {"exam": exam_key}
 
-    tasks = list(EXAMS[exam_key].keys())
+    tasks = list(EXAMS.get(exam_key, {}).keys())
+    if not tasks:
+        await message.answer("Для этого экзамена нет заданий.")
+        return
+
     await message.answer(
         "Выбери задание:",
         reply_markup=tasks_keyboard(tasks)
     )
 
 
-@dp.message(lambda m: m.text == "Назад")
+@dp.message(lambda m: m.text == "⬅️ Назад")
 async def back(message: types.Message):
     user_state.pop(message.from_user.id, None)
     await message.answer(
@@ -68,7 +75,7 @@ async def choose_task(message: types.Message):
     exercise = random.choice(exercises)
     user_state[user_id]["current"] = exercise
 
-    # Динамический текст, только 3 варианта
+    # Текст вопроса с 3 вариантами
     text = exercise["question"] + "\n\n"
     letters = ["A", "B", "C"]
     for i in range(3):
@@ -99,9 +106,9 @@ async def check_answer(message: types.Message):
     # Очистка текущего упражнения
     state.pop("current")
 
-    # Следующее задание
+    # Предлагаем выбрать следующее задание
     exam = state["exam"]
-    tasks = list(EXAMS[exam].keys())
+    tasks = list(EXAMS.get(exam, {}).keys())
     await message.answer(
         "Выбери следующее задание:",
         reply_markup=tasks_keyboard(tasks)
@@ -114,6 +121,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
