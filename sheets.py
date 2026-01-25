@@ -33,10 +33,10 @@ class SheetsLoader:
             task = row["task"].strip()
             question = row["question"].strip()
             options = [
-                row["a"].strip(),
-                row["b"].strip(),
-                row["c"].strip(),
-                row["d"].strip(),
+                row["A"].strip(),
+                row["B"].strip(),
+                row["C"].strip(),
+                row["D"].strip(),
             ]
             correct = row["correct"].strip().lower()
 
