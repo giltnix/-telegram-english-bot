@@ -1,27 +1,24 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-
 def exam_keyboard():
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="ОГЭ")],
-            [KeyboardButton(text="ЕГЭ")]
-        ],
-        resize_keyboard=True
-    )
-
+    """Клавиатура выбора экзамена"""
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.add(KeyboardButton("ОГЭ"), KeyboardButton("ЕГЭ"))
+    return kb
 
 def tasks_keyboard(tasks: list):
-    keyboard = [[KeyboardButton(text=task)] for task in tasks]
-    keyboard.append([KeyboardButton(text="⬅️ Назад")])
-    return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
+    """Клавиатура с заданиями"""
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    for task in tasks:
+        kb.add(KeyboardButton(task))
+    kb.add(KeyboardButton("Назад"))
+    return kb
 
+def answers_keyboard(n_options: int):
+    """Динамическая клавиатура для вариантов ответа (A, B, C ...)"""
+    letters = ["A", "B", "C", "D", "E", "F"][:n_options]  # максимум 6 вариантов
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    for letter in letters:
+        kb.add(KeyboardButton(letter))
+    return kb
 
-def answers_keyboard():
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="A"), KeyboardButton(text="B")],
-            [KeyboardButton(text="C"), KeyboardButton(text="D")]
-        ],
-        resize_keyboard=True
-    )
