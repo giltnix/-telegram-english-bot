@@ -25,10 +25,10 @@ def tasks_keyboard(tasks):
 
 
 def answers_keyboard():
+    # Всегда 3 варианта: A, B, C
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="A"), KeyboardButton(text="B")],
-            [KeyboardButton(text="C"), KeyboardButton(text="D")]
+            [KeyboardButton(text="A"), KeyboardButton(text="B"), KeyboardButton(text="C")]
         ],
         resize_keyboard=True
     )
