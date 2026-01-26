@@ -1,6 +1,5 @@
 import asyncio
 import random
-
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
 
@@ -12,7 +11,7 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 loader = SheetsLoader("OGE/EGE")
-DATA = loader.get_exercises()  # DATA['oge'], DATA['ege'], DATA['Конкретная тема']
+DATA = loader.get_exercises()  # Список всех строк из таблицы
 
 user_state = {}
 
@@ -22,9 +21,8 @@ MODE_MAP = {
     "Конкретные темы": "Конкретная тема"
 }
 
-CONCRETE_TOPICS = [
-    "Present", "Past", "Future", "Условные наклонения", "Модальные глаголы", "Косвенная речь"
-]
+# Кнопки для выбора темы в "Конкретных темах"
+CONCRETE_TOPICS = ["Present", "Past", "Future", "Условные наклонения", "Модальные глаголы", "Косвенная речь"]
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
@@ -65,24 +63,29 @@ async def choose_task(message: types.Message):
     mode = state["mode"]
     task = message.text
 
-    # Для "Конкретных тем" фильтруем список по теме
     if mode == "Конкретная тема":
-        exercises = [ex for ex in DATA.get(mode, []) if ex["task"] == task]
+        # Фильтруем список строк по выбранной теме
+        exercises = [row for row in DATA if row["exam"] == "Конкретная тема" and row["task"] == task]
     else:
-        exercises = DATA.get(mode, {}).get(task)
+        exercises = DATA.get(mode, {}).get(task, [])
 
     if not exercises:
         await message.answer("Нет заданий по этой теме.")
         return
 
-    # Выбираем случайное упражнение
+    # Берём случайное упражнение
     exercise = random.choice(exercises)
     state["current"] = exercise
 
-    # Формируем текст с вариантами
+    # Разбираем варианты
+    options = [opt.strip() for opt in exercise["options"].split(";")]
+
     text = exercise["question"] + "\n\n"
     for i, letter in enumerate(["A", "B", "C"]):
-        text += f"{letter}) {exercise['options'][i]}\n"
+        text += f"{letter}) {options[i]}\n"
+
+    state["current"]["options"] = options  # сохраняем для проверки
+    state["current"]["correct"] = exercise["answer"].strip()  # сохраняем правильный ответ
 
     await message.answer(text, reply_markup=answers_keyboard())
 
@@ -90,7 +93,6 @@ async def choose_task(message: types.Message):
 async def check_answer(message: types.Message):
     user_id = message.from_user.id
     state = user_state.get(user_id)
-
     if not state or "current" not in state:
         return
 
