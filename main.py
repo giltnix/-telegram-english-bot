@@ -8,7 +8,6 @@ from config import BOT_TOKEN
 from sheets import SheetsLoader
 from keyboards import start_keyboard, tasks_keyboard, answers_keyboard
 
-
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
@@ -40,7 +39,11 @@ async def choose_mode(message: types.Message):
 
     user_state[user_id] = {"mode": mode}
 
-    tasks = list(DATA.get(mode, {}).keys())
+    # Добавляем кнопки для конкретных тем
+    if message.text == "Конкретные темы":
+        tasks = ["Present", "Past", "Future", "Условные наклонения", "Модальные глаголы", "Косвенная речь"]
+    else:
+        tasks = list(DATA.get(mode, {}).keys())
 
     if not tasks:
         await message.answer("Нет заданий.")
@@ -54,6 +57,7 @@ async def choose_mode(message: types.Message):
 
 @dp.message(lambda m: m.text == "Назад")
 async def back(message: types.Message):
+    """Возврат в главное меню"""
     user_state.pop(message.from_user.id, None)
     await message.answer(
         "Выбери режим:",
@@ -63,6 +67,7 @@ async def back(message: types.Message):
 
 @dp.message(lambda m: m.from_user.id in user_state and "current" not in user_state[m.from_user.id])
 async def choose_task(message: types.Message):
+    """Выбор задания"""
     user_id = message.from_user.id
     state = user_state[user_id]
 
@@ -70,7 +75,6 @@ async def choose_task(message: types.Message):
     task = message.text
 
     exercises = DATA.get(mode, {}).get(task)
-
     if not exercises:
         await message.answer("Нет заданий по этой теме.")
         return
@@ -87,6 +91,7 @@ async def choose_task(message: types.Message):
 
 @dp.message(lambda m: m.text in ["A", "B", "C"])
 async def check_answer(message: types.Message):
+    """Проверка ответа"""
     user_id = message.from_user.id
     state = user_state.get(user_id)
 
@@ -117,6 +122,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
