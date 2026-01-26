@@ -22,7 +22,7 @@ def tasks_keyboard(tasks: list):
         keyboard.append(row)
     
     # Добавляем кнопку Назад
-    keyboard.append([KeyboardButton(text="⬅️ Назад")])
+    keyboard.append([KeyboardButton(text="Назад")])
     
     return ReplyKeyboardMarkup(
         keyboard=keyboard,
