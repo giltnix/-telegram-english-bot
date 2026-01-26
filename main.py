@@ -136,9 +136,9 @@ async def check_answer(message: types.Message):
     correct = state["current"].get("answer", "").upper().strip()
 
     if message.text.upper() == correct:
-        await message.answer("✅ Верно!")
+        await message.answer("Верно!")
     else:
-        await message.answer(f"❌ Неверно. Правильный ответ: {correct}")
+        await message.answer(f"Неверно. Правильный ответ: {correct}")
 
     state.pop("current", None)
 
