@@ -22,9 +22,8 @@ MODE_MAP = {
     "Конкретные темы": "Конкретная тема"
 }
 
-CONCRETE_TOPICS = [
-    "Present", "Past", "Future", "Условные предложения", "Модальные глаголы", "Косвенная речь"
-]
+# Здесь кнопки для выбора темы у "Конкретных тем"
+CONCRETE_TOPICS = ["Present", "Past", "Future", "Условные наклонения", "Модальные глаголы", "Косвенная речь"]
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
@@ -117,6 +116,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
