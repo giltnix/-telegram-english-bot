@@ -6,44 +6,50 @@ from aiogram.filters import CommandStart
 
 from config import BOT_TOKEN
 from sheets import SheetsLoader
-from keyboards import exam_keyboard, tasks_keyboard, answers_keyboard
+from keyboards import start_keyboard, tasks_keyboard, answers_keyboard
+
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# Загружаем упражнения
 loader = SheetsLoader("OGE/EGE")
-EXAMS = loader.get_exercises()  # формат: {"oge": {"Грамматические навыки": [...], ...}, "ege": {...}}
+DATA = loader.get_exercises()
+# ожидаемый формат:
+# {
+#   "oge": { "Лексико-грамматические навыки": [..] },
+#   "ege": { "Грамматические навыки": [..] },
+#   "topic": { "Present": [..], "Past": [..] }
+# }
 
-# Состояние пользователя
-user_state = {}
-
-# Соответствие кнопок текста к ключам EXAMS
-EXAM_MAP = {
-    "ОГЭ": "oge",
-    "ЕГЭ": "ege"
-}
+user_state: dict[int, dict] = {}
 
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
     user_state.clear()
     await message.answer(
-        "Привет! Выбери экзамен:",
-        reply_markup=exam_keyboard()
+        "Привет! Выбери режим:",
+        reply_markup=start_keyboard()
     )
 
 
-@dp.message(lambda m: m.text in EXAM_MAP)
-async def choose_exam(message: types.Message):
+@dp.message(lambda m: m.text in ["ОГЭ", "ЕГЭ", "Конкретные темы"])
+async def choose_mode(message: types.Message):
     user_id = message.from_user.id
-    exam_key = EXAM_MAP[message.text]
 
-    user_state[user_id] = {"exam": exam_key}
+    mode_map = {
+        "ОГЭ": "oge",
+        "ЕГЭ": "ege",
+        "Конкретные темы": "topic"
+    }
 
-    tasks = list(EXAMS.get(exam_key, {}).keys())
+    mode = mode_map[message.text]
+    user_state[user_id] = {"mode": mode}
+
+    tasks = list(DATA.get(mode, {}).keys())
+
     if not tasks:
-        await message.answer("Для этого экзамена нет заданий.")
+        await message.answer("Нет заданий.")
         return
 
     await message.answer(
@@ -52,34 +58,38 @@ async def choose_exam(message: types.Message):
     )
 
 
-@dp.message(lambda m: m.text == "⬅️ Назад")
+@dp.message(lambda m: m.text == "Назад")
 async def back(message: types.Message):
     user_state.pop(message.from_user.id, None)
     await message.answer(
-        "Выбери экзамен:",
-        reply_markup=exam_keyboard()
+        "Выбери режим:",
+        reply_markup=start_keyboard()
     )
 
 
 @dp.message(lambda m: m.from_user.id in user_state and "current" not in user_state[m.from_user.id])
 async def choose_task(message: types.Message):
     user_id = message.from_user.id
-    exam = user_state[user_id]["exam"]
+    state = user_state[user_id]
+
+    mode = state["mode"]
     task = message.text
 
-    exercises = EXAMS.get(exam, {}).get(task)
+    exercises = DATA.get(mode, {}).get(task)
+
     if not exercises:
-        await message.answer("Нет заданий для этого задания.")
+        await message.answer("Нет заданий для этого пункта.")
         return
 
     exercise = random.choice(exercises)
-    user_state[user_id]["current"] = exercise
+    state["current"] = exercise
 
-    # Текст вопроса с 3 вариантами
     text = exercise["question"] + "\n\n"
+    options = exercise["options"]
+
     letters = ["A", "B", "C"]
     for i in range(3):
-        text += f"{letters[i]}) {exercise['options'][i]}\n"
+        text += f"{letters[i]}) {options[i]}\n"
 
     await message.answer(
         text,
@@ -96,19 +106,17 @@ async def check_answer(message: types.Message):
         return
 
     correct = state["current"]["correct"].upper()
-    user_answer = message.text.upper()
 
-    if user_answer == correct:
+    if message.text == correct:
         await message.answer("Верно!")
     else:
         await message.answer(f"Неверно. Правильный ответ: {correct}")
 
-    # Очистка текущего упражнения
     state.pop("current")
 
-    # Предлагаем выбрать следующее задание
-    exam = state["exam"]
-    tasks = list(EXAMS.get(exam, {}).keys())
+    mode = state["mode"]
+    tasks = list(DATA.get(mode, {}).keys())
+
     await message.answer(
         "Выбери следующее задание:",
         reply_markup=tasks_keyboard(tasks)
@@ -121,6 +129,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
