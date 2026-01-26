@@ -11,6 +11,9 @@ def start_keyboard() -> ReplyKeyboardMarkup:
     )
 
 def tasks_keyboard(tasks: list[str]) -> ReplyKeyboardMarkup:
+    """
+    Создаёт клавиатуру с темами для выбранного режима
+    """
     keyboard = [[KeyboardButton(text=task)] for task in tasks]
     keyboard.append([KeyboardButton(text="Назад")])
     return ReplyKeyboardMarkup(
@@ -19,6 +22,9 @@ def tasks_keyboard(tasks: list[str]) -> ReplyKeyboardMarkup:
     )
 
 def answers_keyboard() -> ReplyKeyboardMarkup:
+    """
+    Кнопки для выбора ответа A, B, C
+    """
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="A"), KeyboardButton(text="B"), KeyboardButton(text="C")]
