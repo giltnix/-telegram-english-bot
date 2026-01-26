@@ -1,6 +1,6 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-def start_keyboard() -> ReplyKeyboardMarkup:
+def start_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton("ОГЭ")],
@@ -10,7 +10,7 @@ def start_keyboard() -> ReplyKeyboardMarkup:
         resize_keyboard=True
     )
 
-def tasks_keyboard(tasks: list[str]) -> ReplyKeyboardMarkup:
+def tasks_keyboard(tasks):
     keyboard = [[KeyboardButton(task)] for task in tasks]
     keyboard.append([KeyboardButton("Назад")])
     return ReplyKeyboardMarkup(
@@ -18,7 +18,7 @@ def tasks_keyboard(tasks: list[str]) -> ReplyKeyboardMarkup:
         resize_keyboard=True
     )
 
-def answers_keyboard() -> ReplyKeyboardMarkup:
+def answers_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton("A"), KeyboardButton("B"), KeyboardButton("C")]],
         resize_keyboard=True
