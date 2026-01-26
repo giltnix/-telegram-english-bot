@@ -1,3 +1,10 @@
+from config import BOT_TOKEN
+
+print("BOT_TOKEN repr:", repr(BOT_TOKEN))
+print("BOT_TOKEN len:", len(BOT_TOKEN))
+
+bot = Bot(token=BOT_TOKEN)
+
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 
