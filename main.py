@@ -3,28 +3,30 @@ import random
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
 from keyboards import start_keyboard, tasks_keyboard, answers_keyboard
-from sheets import SheetsLoader  # твой loader для таблицы
+
+# -----------------------
+# Минимальный тестовый пример
+# -----------------------
 
 bot = Bot(token="YOUR_BOT_TOKEN")
 dp = Dispatcher()
 
-# ---------------------
-# Загрузка данных из таблицы
-# ---------------------
-# Должно возвращать список строк:
-# [{'exam': 'oge', 'task': 'Грамматические навыки', 'question': '...', 'options': 'A;B;C', 'answer': 'A'}, ...]
-DATA_RAW = SheetsLoader("OGE/EGE").get_exercises()
+# Пример "таблицы" как список строк
+DATA_RAW = [
+    {"exam": "oge", "task": "Грамматические навыки", "question": "It was a ___ morning.", "options": "fresh;hot;cold", "answer": "A"},
+    {"exam": "oge", "task": "Грамматические навыки", "question": "She has a ___ job.", "options": "good;bad;best", "answer": "A"},
+    {"exam": "Конкретная тема", "task": "Условные наклонения", "question": "If I find your book, I ___ it to you.", "options": "will give;give;would give", "answer": "A"}
+]
 
 CONCRETE_TOPICS = ["Present", "Past", "Future", "Условные наклонения", "Модальные глаголы", "Косвенная речь"]
-
 user_state = {}
 
-# ---------------------
+# -----------------------
 # Handlers
-# ---------------------
+# -----------------------
 
 @dp.message(CommandStart())
-async def start(message: types.Message):
+async def cmd_start(message: types.Message):
     user_state.clear()
     await message.answer("Привет! Выбери режим:", reply_markup=start_keyboard())
 
@@ -37,8 +39,7 @@ async def choose_mode(message: types.Message):
     if mode == "Конкретные темы":
         tasks = CONCRETE_TOPICS
     else:
-        # Берём все темы из DATA_RAW по выбранному exam
-        tasks = list({row['task'] for row in DATA_RAW if row['exam'] == mode.lower()})
+        tasks = list({row["task"] for row in DATA_RAW if row["exam"] == mode.lower()})
 
     await message.answer("Выбери тему:", reply_markup=tasks_keyboard(tasks))
 
@@ -55,18 +56,18 @@ async def choose_task(message: types.Message):
     task = message.text
 
     if mode == "Конкретные темы":
-        exercises = [row for row in DATA_RAW if row['exam'] == "Конкретная тема" and row['task'] == task]
+        exercises = [row for row in DATA_RAW if row["exam"] == "Конкретная тема" and row["task"] == task]
     else:
-        exercises = [row for row in DATA_RAW if row['exam'] == mode.lower() and row['task'] == task]
+        exercises = [row for row in DATA_RAW if row["exam"] == mode.lower() and row["task"] == task]
 
     if not exercises:
         await message.answer("Нет заданий по этой теме.")
         return
 
     exercise = random.choice(exercises)
-    question = exercise['question']
-    options = [opt.strip() for opt in exercise['options'].split(";")]
-    correct = exercise['answer'].strip()
+    question = exercise["question"]
+    options = [o.strip() for o in exercise["options"].split(";")]
+    correct = exercise["answer"]
 
     state["current"] = {"question": question, "options": options, "correct": correct}
 
@@ -95,4 +96,16 @@ async def check_answer(message: types.Message):
     if mode == "Конкретные темы":
         tasks = CONCRETE_TOPICS
     else:
-        tasks = list({row['task'] for row in DATA_RAW if row['exam']
+        tasks = list({row["task"] for row in DATA_RAW if row["exam"] == mode.lower()})
+
+    await message.answer("Выбери следующую тему:", reply_markup=tasks_keyboard(tasks))
+
+# -----------------------
+# Запуск
+# -----------------------
+
+async def main():
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
