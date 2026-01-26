@@ -1,9 +1,7 @@
 import asyncio
 import random
-
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
-
 from config import BOT_TOKEN
 from sheets import SheetsLoader
 from keyboards import start_keyboard, tasks_keyboard, answers_keyboard
@@ -11,133 +9,135 @@ from keyboards import start_keyboard, tasks_keyboard, answers_keyboard
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# Загружаем ВСЮ таблицу
+# Загружаем данные
 loader = SheetsLoader("OGE/EGE")
 DATA = loader.get_raw_rows()
-# DATA = list[dict] с ключами: exam, task, question, options, answer
+
+print(f"✅ Загружено {len(DATA)} заданий")
 
 user_state = {}
 
-
 @dp.message(CommandStart())
 async def start(message: types.Message):
-    user_state.clear()
+    user_state[message.from_user.id] = {}
     await message.answer(
         "Привет! Выбери режим:",
         reply_markup=start_keyboard()
     )
 
-
 @dp.message(lambda m: m.text in ["ОГЭ", "ЕГЭ", "Конкретные темы"])
 async def choose_mode(message: types.Message):
     user_id = message.from_user.id
     mode = message.text
-
     user_state[user_id] = {"mode": mode}
-
+    
+    # Формируем список тем
     if mode == "Конкретные темы":
-        tasks = sorted(
-            {row["task"] for row in DATA if row["exam"] == "Конкретная тема"}
-        )
+        # Для конкретных тем
+        exam_filter = "конкретная тема"
     else:
-        exam_key = mode.lower()
-        tasks = sorted(
-            {row["task"] for row in DATA if row["exam"] == exam_key}
-        )
-
+        # Для ОГЭ/ЕГЭ
+        exam_filter = "oge" if mode == "ОГЭ" else "ege"
+    
+    tasks = sorted({
+        row["task"] for row in DATA 
+        if str(row.get("exam", "")).strip().lower() == exam_filter
+    })
+    
     if not tasks:
-        await message.answer("Нет заданий для этого режима")
+        await message.answer("Пока нет заданий для этого режима")
         return
-
+    
     await message.answer(
         "Выбери тему:",
         reply_markup=tasks_keyboard(tasks)
     )
 
-
 @dp.message(lambda m: m.text == "Назад")
-async def back(message: types.Message):
-    user_state.pop(message.from_user.id, None)
+async def go_back(message: types.Message):
+    user_id = message.from_user.id
+    if user_id in user_state:
+        user_state[user_id] = {}
     await message.answer(
         "Выбери режим:",
         reply_markup=start_keyboard()
     )
-
 
 @dp.message(lambda m: m.from_user.id in user_state and "current" not in user_state[m.from_user.id])
 async def choose_task(message: types.Message):
     user_id = message.from_user.id
     state = user_state[user_id]
     mode = state["mode"]
-    task = message.text
-
+    selected_task = message.text
+    
+    # Определяем фильтр для экзамена
     if mode == "Конкретные темы":
-        exercises = [
-            row for row in DATA
-            if row["exam"] == "Конкретная тема" and row["task"] == task
-        ]
+        exam_filter = "конкретная тема"
     else:
-        exercises = [
-            row for row in DATA
-            if row["exam"] == mode.lower() and row["task"] == task
-        ]
-
+        exam_filter = "oge" if mode == "ОГЭ" else "ege"
+    
+    # Ищем задания
+    exercises = [
+        row for row in DATA
+        if str(row.get("exam", "")).strip().lower() == exam_filter 
+        and str(row.get("task", "")).strip() == selected_task
+    ]
+    
     if not exercises:
-        await message.answer("Пока что нет заданий по этой теме")
+        await message.answer("Пока нет заданий по этой теме")
         return
-
+    
+    # Выбираем случайное задание
     exercise = random.choice(exercises)
     state["current"] = exercise
-
-    options = [o.strip() for o in exercise["options"].split(";")]
-
-    text = exercise["question"] + "\n\n"
+    
+    # Формируем варианты ответов
+    options = [opt.strip() for opt in exercise.get("options", "").split(";")]
+    
+    # Формируем текст вопроса
+    text = f"{exercise.get('question', '')}\n\n"
     for letter, option in zip(["A", "B", "C"], options):
         text += f"{letter}) {option}\n"
-
-    await message.answer(
-        text,
-        reply_markup=answers_keyboard()
-    )
-
+    
+    await message.answer(text, reply_markup=answers_keyboard())
 
 @dp.message(lambda m: m.text in ["A", "B", "C"])
 async def check_answer(message: types.Message):
     user_id = message.from_user.id
-    state = user_state.get(user_id)
-
-    if not state or "current" not in state:
+    if user_id not in user_state or "current" not in user_state[user_id]:
         return
-
-    correct = state["current"]["answer"].upper()
-
-    if message.text == correct:
-        await message.answer("Верно!")
+    
+    state = user_state[user_id]
+    correct = state["current"].get("answer", "").upper()
+    user_answer = message.text.upper()
+    
+    if user_answer == correct:
+        await message.answer("✅ Верно!")
     else:
-        await message.answer(f"Неверно. Правильный ответ: {correct}")
-
-    state.pop("current")
-
-    mode = state["mode"]
-
+        await message.answer(f"❌ Неверно. Правильный ответ: {correct}")
+    
+    # Удаляем текущее задание
+    del state["current"]
+    
+    # Возвращаем к выбору тем
+    mode = state.get("mode", "")
     if mode == "Конкретные темы":
-        tasks = sorted(
-            {row["task"] for row in DATA if row["exam"] == "Конкретная тема"}
-        )
+        exam_filter = "конкретная тема"
     else:
-        tasks = sorted(
-            {row["task"] for row in DATA if row["exam"] == mode.lower()}
-        )
-
+        exam_filter = "oge" if mode == "ОГЭ" else "ege"
+    
+    tasks = sorted({
+        row["task"] for row in DATA 
+        if str(row.get("exam", "")).strip().lower() == exam_filter
+    })
+    
     await message.answer(
-        "Выбери следующую тему:",
+        "Выбери тему:",
         reply_markup=tasks_keyboard(tasks)
     )
 
-
 async def main():
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
