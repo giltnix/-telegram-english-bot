@@ -19,7 +19,7 @@ def tasks_keyboard(tasks: list):
             row.append(KeyboardButton(text=tasks[i + 1]))
         keyboard.append(row)
     
-    keyboard.append([KeyboardButton(text="Назад")])
+    keyboard.append([KeyboardButton(text="⬅️ Назад")])
     return ReplyKeyboardMarkup(
         keyboard=keyboard,
         resize_keyboard=True
@@ -38,8 +38,8 @@ def answers_keyboard():
 def explanation_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="Объяснение")],
-            [KeyboardButton(text="Назад к темам")]
+            [KeyboardButton(text="📖 Объяснение")],
+            [KeyboardButton(text="⬅️ Назад к темам")]
         ],
         resize_keyboard=True
     )
