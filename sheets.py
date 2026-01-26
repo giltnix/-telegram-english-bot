@@ -45,3 +45,10 @@ class SheetsLoader:
             })
 
         return exams
+
+    # ДОБАВЬТЕ ЭТОТ МЕТОД
+    def get_raw_rows(self):
+        """Возвращает все строки таблицы как список словарей"""
+        return self.sheet.get_all_records()
+
+        return exams
