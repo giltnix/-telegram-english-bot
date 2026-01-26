@@ -23,7 +23,7 @@ MODE_MAP = {
 }
 
 CONCRETE_TOPICS = [
-    "Present", "Past", "Future", "Условные наклонения", "Модальные глаголы", "Косвенная речь"
+    "Present", "Past", "Future", "Условные предложения", "Модальные глаголы", "Косвенная речь"
 ]
 
 @dp.message(CommandStart())
@@ -38,7 +38,6 @@ async def start(message: types.Message):
 async def choose_mode(message: types.Message):
     user_id = message.from_user.id
     mode = MODE_MAP[message.text]
-
     user_state[user_id] = {"mode": mode}
 
     if message.text == "Конкретные темы":
@@ -63,11 +62,10 @@ async def back(message: types.Message):
 async def choose_task(message: types.Message):
     user_id = message.from_user.id
     state = user_state[user_id]
-
     mode = state["mode"]
     task = message.text
 
-    # Для "Конкретных тем" фильтруем список по выбранной теме
+    # Для "Конкретных тем" фильтруем список по выбранной теме task
     if mode == "Конкретная тема":
         exercises = [ex for ex in DATA.get(mode, []) if ex["task"] == task]
     else:
