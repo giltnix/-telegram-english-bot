@@ -13,7 +13,7 @@ dp = Dispatcher()
 loader = SheetsLoader("OGE/EGE")
 DATA = loader.sheet.get_all_records()
 
-print(f"Загружено {len(DATA)} заданий")
+print(f"✅ Загружено {len(DATA)} заданий")
 
 user_state = {}
 
@@ -52,7 +52,7 @@ async def choose_mode(message: types.Message):
         reply_markup=tasks_keyboard(tasks)
     )
 
-@dp.message(lambda m: m.text == "Назад" or m.text == "Назад")
+@dp.message(lambda m: m.text == "Назад" or m.text == "⬅️ Назад")
 async def go_back(message: types.Message):
     user_id = message.from_user.id
     if user_id in user_state:
@@ -119,9 +119,9 @@ async def check_answer(message: types.Message):
     state["user_answer"] = user_answer
     
     if user_answer == correct:
-        response = "Верно!"
+        response = "✅ Верно!"
     else:
-        response = f"Неверно. Правильный ответ: {correct}"
+        response = f"❌ Неверно. Правильный ответ: {correct}"
     
     # Проверяем, есть ли объяснение
     explanation = state["current"].get("explanation", "").strip()
@@ -159,12 +159,12 @@ async def show_explanation(message: types.Message):
     await message.answer(
         "Что дальше?",
         reply_markup=ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="Назад к темам")]],
+            keyboard=[[KeyboardButton(text="⬅️ Назад к темам")]],
             resize_keyboard=True
         )
     )
 
-@dp.message(lambda m: m.text == "Назад к темам")
+@dp.message(lambda m: m.text == "⬅️ Назад к темам")
 async def back_to_topics(message: types.Message):
     user_id = message.from_user.id
     if user_id not in user_state:
