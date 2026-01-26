@@ -10,6 +10,7 @@ from keyboards import start_keyboard, tasks_keyboard, answers_keyboard
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
+# Загрузка данных
 loader = SheetsLoader("OGE/EGE")
 # Словарь для ОГЭ/ЕГЭ
 DATA = loader.get_exercises_dict()  # {'oge': {...}, 'ege': {...}}
@@ -18,13 +19,16 @@ CONCRETE_RAW = loader.get_exercises_list()  # [{'task':..., 'question':..., 'opt
 
 user_state = {}
 
+# Темы для Конкретных тем
 CONCRETE_TOPICS = ["Present", "Past", "Future", "Условные наклонения", "Модальные глаголы", "Косвенная речь"]
 
+# Команда /start
 @dp.message(CommandStart())
 async def start(message: types.Message):
     user_state.clear()
     await message.answer("Привет! Выбери режим:", reply_markup=start_keyboard())
 
+# Выбор режима
 @dp.message(lambda m: m.text in ["ОГЭ", "ЕГЭ", "Конкретные темы"])
 async def choose_mode(message: types.Message):
     user_id = message.from_user.id
@@ -38,11 +42,13 @@ async def choose_mode(message: types.Message):
 
     await message.answer("Выбери тему:", reply_markup=tasks_keyboard(tasks))
 
+# Назад
 @dp.message(lambda m: m.text == "Назад")
 async def back(message: types.Message):
     user_state.pop(message.from_user.id, None)
     await message.answer("Выбери режим:", reply_markup=start_keyboard())
 
+# Выбор темы
 @dp.message(lambda m: m.from_user.id in user_state and "current" not in user_state[m.from_user.id])
 async def choose_task(message: types.Message):
     user_id = message.from_user.id
@@ -50,6 +56,7 @@ async def choose_task(message: types.Message):
     mode = state["mode"]
     task = message.text
 
+    # Конкретные темы
     if mode == "Конкретные темы":
         exercises = [row for row in CONCRETE_RAW if row["task"] == task]
         if not exercises:
@@ -60,6 +67,7 @@ async def choose_task(message: types.Message):
         options = [opt.strip() for opt in exercise["options"].split(";")]
         correct = exercise["answer"].strip()
     else:
+        # ОГЭ/ЕГЭ
         exercises = DATA.get(mode.lower(), {}).get(task, [])
         if not exercises:
             await message.answer("Нет заданий по этой теме.")
@@ -69,11 +77,7 @@ async def choose_task(message: types.Message):
         options = exercise["options"]
         correct = exercise["correct"]
 
-    state["current"] = {
-        "question": question,
-        "options": options,
-        "correct": correct
-    }
+    state["current"] = {"question": question, "options": options, "correct": correct}
 
     text = question + "\n\n"
     for i, letter in enumerate(["A", "B", "C"]):
@@ -81,6 +85,7 @@ async def choose_task(message: types.Message):
 
     await message.answer(text, reply_markup=answers_keyboard())
 
+# Проверка ответа
 @dp.message(lambda m: m.text in ["A", "B", "C"])
 async def check_answer(message: types.Message):
     user_id = message.from_user.id
@@ -104,6 +109,7 @@ async def check_answer(message: types.Message):
 
     await message.answer("Выбери следующую тему:", reply_markup=tasks_keyboard(tasks))
 
+# Запуск
 async def main():
     await dp.start_polling(bot)
 
