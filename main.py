@@ -11,46 +11,34 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 loader = SheetsLoader("OGE/EGE")
-DATA = loader.get_exercises()  # Словари для ОГЭ/ЕГЭ и список для "Конкретная тема"
+DATA_RAW = loader.get_exercises()  # Список всех строк из таблицы
 
 user_state = {}
 
-# Маппинг кнопок
-MODE_MAP = {
-    "ОГЭ": "oge",
-    "ЕГЭ": "ege",
-    "Конкретные темы": "Конкретная тема"
-}
-
-# Кнопки выбора тем для Конкретных тем
 CONCRETE_TOPICS = ["Present", "Past", "Future", "Условные наклонения", "Модальные глаголы", "Косвенная речь"]
 
 # Старт
 @dp.message(CommandStart())
 async def start(message: types.Message):
     user_state.clear()
-    await message.answer(
-        "Привет! Выбери режим:",
-        reply_markup=start_keyboard()
-    )
+    await message.answer("Привет! Выбери режим:", reply_markup=start_keyboard())
 
 # Выбор режима
-@dp.message(lambda m: m.text in MODE_MAP)
+@dp.message(lambda m: m.text in ["ОГЭ", "ЕГЭ", "Конкретные темы"])
 async def choose_mode(message: types.Message):
     user_id = message.from_user.id
-    mode = MODE_MAP[message.text]
+    mode = message.text
     user_state[user_id] = {"mode": mode}
 
-    # Для Конкретных тем выводим фиксированные кнопки
-    if message.text == "Конкретные темы":
+    if mode == "Конкретные темы":
         tasks = CONCRETE_TOPICS
     else:
-        # Для ОГЭ/ЕГЭ берём темы из словаря, как было
-        tasks = list(DATA.get(mode, {}).keys())
+        # Получаем темы из словаря для ОГЭ/ЕГЭ
+        tasks = list(DATA_RAW.get(mode.lower(), {}).keys())
 
     await message.answer("Выбери тему:", reply_markup=tasks_keyboard(tasks))
 
-# Кнопка Назад
+# Назад
 @dp.message(lambda m: m.text == "Назад")
 async def back(message: types.Message):
     user_state.pop(message.from_user.id, None)
@@ -64,33 +52,35 @@ async def choose_task(message: types.Message):
     mode = state["mode"]
     task = message.text
 
-    # Конкретные темы — список строк
-    if mode == "Конкретная тема":
-        exercises = [row for row in DATA.get("Конкретная тема", []) if row["task"] == task]
+    # Конкретные темы — фильтруем строки
+    if mode == "Конкретные темы":
+        exercises = [row for row in DATA_RAW if row[0] == "Конкретная тема" and row[1] == task]
+        if not exercises:
+            await message.answer("Нет заданий по этой теме.")
+            return
+
+        exercise = random.choice(exercises)
+        question = exercise[2]
+        options = [opt.strip() for opt in exercise[3].split(";")]
+        correct = exercise[4].strip()
     else:
-        # ОГЭ/ЕГЭ — словари, как было
-        exercises = DATA.get(mode, {}).get(task, [])
-
-    if not exercises:
-        await message.answer("Нет заданий по этой теме.")
-        return
-
-    # Случайное упражнение
-    exercise = random.choice(exercises)
-    state["current"] = exercise
-
-    # Варианты и правильный ответ
-    if mode == "Конкретная тема":
-        options = [opt.strip() for opt in exercise["options"].split(";")]
-        correct = exercise["answer"].strip()
-    else:
+        # ОГЭ/ЕГЭ — словари
+        exercises = DATA_RAW.get(mode.lower(), {}).get(task, [])
+        if not exercises:
+            await message.answer("Нет заданий по этой теме.")
+            return
+        exercise = random.choice(exercises)
+        question = exercise["question"]
         options = exercise["options"]
         correct = exercise["correct"]
 
-    state["current"]["options"] = options
-    state["current"]["correct"] = correct
+    state["current"] = {
+        "question": question,
+        "options": options,
+        "correct": correct
+    }
 
-    text = exercise["question"] + "\n\n"
+    text = question + "\n\n"
     for i, letter in enumerate(["A", "B", "C"]):
         text += f"{letter}) {options[i]}\n"
 
@@ -113,10 +103,10 @@ async def check_answer(message: types.Message):
     state.pop("current")
 
     mode = state["mode"]
-    if mode == "Конкретная тема":
+    if mode == "Конкретные темы":
         tasks = CONCRETE_TOPICS
     else:
-        tasks = list(DATA.get(mode, {}).keys())
+        tasks = list(DATA_RAW.get(mode.lower(), {}).keys())
 
     await message.answer("Выбери следующую тему:", reply_markup=tasks_keyboard(tasks))
 
