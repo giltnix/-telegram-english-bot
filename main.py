@@ -14,14 +14,14 @@ dp = Dispatcher()
 
 loader = SheetsLoader("OGE/EGE")
 DATA = loader.get_exercises()
-# ожидаемый формат:
-# {
-#   "oge": { "Лексико-грамматические навыки": [..] },
-#   "ege": { "Грамматические навыки": [..] },
-#   "topic": { "Present": [..], "Past": [..] }
-# }
 
-user_state: dict[int, dict] = {}
+user_state = {}
+
+MODE_MAP = {
+    "ОГЭ": "oge",
+    "ЕГЭ": "ege",
+    "Конкретные темы": "Конкретная тема"
+}
 
 
 @dp.message(CommandStart())
@@ -33,17 +33,11 @@ async def start(message: types.Message):
     )
 
 
-@dp.message(lambda m: m.text in ["ОГЭ", "ЕГЭ", "Конкретные темы"])
+@dp.message(lambda m: m.text in MODE_MAP)
 async def choose_mode(message: types.Message):
     user_id = message.from_user.id
+    mode = MODE_MAP[message.text]
 
-    mode_map = {
-        "ОГЭ": "oge",
-        "ЕГЭ": "ege",
-        "Конкретные темы": "topic"
-    }
-
-    mode = mode_map[message.text]
     user_state[user_id] = {"mode": mode}
 
     tasks = list(DATA.get(mode, {}).keys())
@@ -53,7 +47,7 @@ async def choose_mode(message: types.Message):
         return
 
     await message.answer(
-        "Выбери задание:",
+        "Выбери тему:",
         reply_markup=tasks_keyboard(tasks)
     )
 
@@ -78,23 +72,17 @@ async def choose_task(message: types.Message):
     exercises = DATA.get(mode, {}).get(task)
 
     if not exercises:
-        await message.answer("Нет заданий для этого пункта.")
+        await message.answer("Нет заданий по этой теме.")
         return
 
     exercise = random.choice(exercises)
     state["current"] = exercise
 
     text = exercise["question"] + "\n\n"
-    options = exercise["options"]
+    for i, letter in enumerate(["A", "B", "C"]):
+        text += f"{letter}) {exercise['options'][i]}\n"
 
-    letters = ["A", "B", "C"]
-    for i in range(3):
-        text += f"{letters[i]}) {options[i]}\n"
-
-    await message.answer(
-        text,
-        reply_markup=answers_keyboard()
-    )
+    await message.answer(text, reply_markup=answers_keyboard())
 
 
 @dp.message(lambda m: m.text in ["A", "B", "C"])
@@ -105,7 +93,7 @@ async def check_answer(message: types.Message):
     if not state or "current" not in state:
         return
 
-    correct = state["current"]["correct"].upper()
+    correct = state["current"]["correct"]
 
     if message.text == correct:
         await message.answer("Верно!")
@@ -118,7 +106,7 @@ async def check_answer(message: types.Message):
     tasks = list(DATA.get(mode, {}).keys())
 
     await message.answer(
-        "Выбери следующее задание:",
+        "Выбери следующую тему:",
         reply_markup=tasks_keyboard(tasks)
     )
 
