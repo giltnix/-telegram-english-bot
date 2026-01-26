@@ -25,4 +25,3 @@ def answers_keyboard() -> ReplyKeyboardMarkup:
         ],
         resize_keyboard=True
     )
-
