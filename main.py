@@ -12,7 +12,7 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 loader = SheetsLoader("OGE/EGE")
-DATA = loader.get_exercises()
+DATA = loader.get_exercises()  # DATA['oge'], DATA['ege'], DATA['Конкретная тема']
 
 user_state = {}
 
@@ -22,8 +22,9 @@ MODE_MAP = {
     "Конкретные темы": "Конкретная тема"
 }
 
-# Здесь кнопки для выбора темы у "Конкретных тем"
-CONCRETE_TOPICS = ["Present", "Past", "Future", "Условные наклонения", "Модальные глаголы", "Косвенная речь"]
+CONCRETE_TOPICS = [
+    "Present", "Past", "Future", "Условные наклонения", "Модальные глаголы", "Косвенная речь"
+]
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
@@ -64,7 +65,7 @@ async def choose_task(message: types.Message):
     mode = state["mode"]
     task = message.text
 
-    # Для "Конкретных тем" фильтруем список по выбранной теме task
+    # Для "Конкретных тем" фильтруем список по теме
     if mode == "Конкретная тема":
         exercises = [ex for ex in DATA.get(mode, []) if ex["task"] == task]
     else:
@@ -74,9 +75,11 @@ async def choose_task(message: types.Message):
         await message.answer("Нет заданий по этой теме.")
         return
 
+    # Выбираем случайное упражнение
     exercise = random.choice(exercises)
     state["current"] = exercise
 
+    # Формируем текст с вариантами
     text = exercise["question"] + "\n\n"
     for i, letter in enumerate(["A", "B", "C"]):
         text += f"{letter}) {exercise['options'][i]}\n"
@@ -100,6 +103,7 @@ async def check_answer(message: types.Message):
 
     state.pop("current")
 
+    # Снова показываем темы
     mode = state["mode"]
     if mode == "Конкретная тема":
         tasks = CONCRETE_TOPICS
@@ -116,6 +120,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
