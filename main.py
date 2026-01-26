@@ -119,9 +119,9 @@ async def check_answer(message: types.Message):
     state["user_answer"] = user_answer
     
     if user_answer == correct:
-        response = "✅ Верно!"
+        response = "Верно!"
     else:
-        response = f"❌ Неверно. Правильный ответ: {correct}"
+        response = f"Неверно. Правильный ответ: {correct}"
     
     # Проверяем, есть ли объяснение
     explanation = state["current"].get("explanation", "").strip()
