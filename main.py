@@ -67,7 +67,12 @@ async def choose_task(message: types.Message):
     mode = state["mode"]
     task = message.text
 
-    exercises = DATA.get(mode, {}).get(task)
+    # Для "Конкретных тем" фильтруем список по выбранной теме
+    if mode == "Конкретная тема":
+        exercises = [ex for ex in DATA.get(mode, []) if ex["task"] == task]
+    else:
+        exercises = DATA.get(mode, {}).get(task)
+
     if not exercises:
         await message.answer("Нет заданий по этой теме.")
         return
@@ -114,6 +119,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
