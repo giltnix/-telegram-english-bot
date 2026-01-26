@@ -22,6 +22,9 @@ MODE_MAP = {
     "Конкретные темы": "Конкретная тема"
 }
 
+CONCRETE_TOPICS = [
+    "Present", "Past", "Future", "Условные наклонения", "Модальные глаголы", "Косвенная речь"
+]
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
@@ -31,7 +34,6 @@ async def start(message: types.Message):
         reply_markup=start_keyboard()
     )
 
-
 @dp.message(lambda m: m.text in MODE_MAP)
 async def choose_mode(message: types.Message):
     user_id = message.from_user.id
@@ -39,35 +41,26 @@ async def choose_mode(message: types.Message):
 
     user_state[user_id] = {"mode": mode}
 
-    # Добавляем кнопки для конкретных тем
     if message.text == "Конкретные темы":
-        tasks = ["Present", "Past", "Future", "Условные наклонения", "Модальные глаголы", "Косвенная речь"]
+        tasks = CONCRETE_TOPICS
     else:
         tasks = list(DATA.get(mode, {}).keys())
-
-    if not tasks:
-        await message.answer("Нет заданий.")
-        return
 
     await message.answer(
         "Выбери тему:",
         reply_markup=tasks_keyboard(tasks)
     )
 
-
 @dp.message(lambda m: m.text == "Назад")
 async def back(message: types.Message):
-    """Возврат в главное меню"""
     user_state.pop(message.from_user.id, None)
     await message.answer(
         "Выбери режим:",
         reply_markup=start_keyboard()
     )
 
-
 @dp.message(lambda m: m.from_user.id in user_state and "current" not in user_state[m.from_user.id])
 async def choose_task(message: types.Message):
-    """Выбор задания"""
     user_id = message.from_user.id
     state = user_state[user_id]
 
@@ -88,10 +81,8 @@ async def choose_task(message: types.Message):
 
     await message.answer(text, reply_markup=answers_keyboard())
 
-
 @dp.message(lambda m: m.text in ["A", "B", "C"])
 async def check_answer(message: types.Message):
-    """Проверка ответа"""
     user_id = message.from_user.id
     state = user_state.get(user_id)
 
@@ -108,17 +99,18 @@ async def check_answer(message: types.Message):
     state.pop("current")
 
     mode = state["mode"]
-    tasks = list(DATA.get(mode, {}).keys())
+    if mode == "Конкретная тема":
+        tasks = CONCRETE_TOPICS
+    else:
+        tasks = list(DATA.get(mode, {}).keys())
 
     await message.answer(
         "Выбери следующую тему:",
         reply_markup=tasks_keyboard(tasks)
     )
 
-
 async def main():
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
