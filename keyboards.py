@@ -1,14 +1,7 @@
-from config import BOT_TOKEN
-
-print("BOT_TOKEN repr:", repr(BOT_TOKEN))
-print("BOT_TOKEN len:", len(BOT_TOKEN))
-
-bot = Bot(token=BOT_TOKEN)
-
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 
-def start_keyboard() -> ReplyKeyboardMarkup:
+def start_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="ОГЭ")],
@@ -19,7 +12,7 @@ def start_keyboard() -> ReplyKeyboardMarkup:
     )
 
 
-def tasks_keyboard(tasks: list) -> ReplyKeyboardMarkup:
+def tasks_keyboard(tasks: list):
     keyboard = [[KeyboardButton(text=task)] for task in tasks]
     keyboard.append([KeyboardButton(text="Назад")])
 
@@ -29,7 +22,7 @@ def tasks_keyboard(tasks: list) -> ReplyKeyboardMarkup:
     )
 
 
-def answers_keyboard() -> ReplyKeyboardMarkup:
+def answers_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
             [
@@ -40,3 +33,4 @@ def answers_keyboard() -> ReplyKeyboardMarkup:
         ],
         resize_keyboard=True
     )
+
