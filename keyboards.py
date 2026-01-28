@@ -38,7 +38,7 @@ def answers_keyboard():
 def explanation_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="Объяснение")],
+            [KeyboardButton(text=""📖 Объяснение"")],
             [KeyboardButton(text="⬅️ Назад к темам")]
         ],
         resize_keyboard=True
