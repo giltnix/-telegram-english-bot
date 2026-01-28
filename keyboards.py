@@ -38,7 +38,7 @@ def answers_keyboard():
 def explanation_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📖 Объяснение")],
+            [KeyboardButton(text="📖 Объяснение")],  # ТОЧНО ТАКЖЕ КАК В ХЭНДЛЕРЕ
             [KeyboardButton(text="⬅️ Назад к темам")]
         ],
         resize_keyboard=True
