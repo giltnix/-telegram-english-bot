@@ -2,6 +2,7 @@ import asyncio
 import random
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
+
 from config import BOT_TOKEN
 from sheets import SheetsLoader
 from keyboards import start_keyboard, tasks_keyboard, answers_keyboard, explanation_keyboard
@@ -14,6 +15,8 @@ loader = SheetsLoader("OGE/EGE")
 DATA = loader.sheet.get_all_records()
 
 print(f"✅ Загружено {len(DATA)} заданий")
+if DATA:
+    print(f"Первое задание: answer='{DATA[0].get('answer')}'")
 
 user_state = {}
 
@@ -99,7 +102,7 @@ async def choose_task(message: types.Message):
     
     # Формируем текст вопроса
     text = f"{exercise.get('question', '')}\n\n"
-    for letter, option in zip(["A", "B", "C"], options[:3]):  # Берем максимум 3 варианта
+    for letter, option in zip(["A", "B", "C"], options[:3]):
         if option:
             text += f"{letter}) {option}\n"
     
@@ -112,19 +115,29 @@ async def check_answer(message: types.Message):
         return
     
     state = user_state[user_id]
-    correct = state["current"].get("answer", "").upper().strip()
-    user_answer = message.text.upper()
+    current_exercise = state["current"]
     
-    # Сохраняем ответ пользователя
-    state["user_answer"] = user_answer
+    # Очищаем ответ из таблицы
+    correct_from_table = current_exercise.get("answer", "").strip()
+    print(f"DEBUG: Ответ из таблицы: '{correct_from_table}'")
     
-    if user_answer == correct:
-        response = "Верно!"
+    # Преобразуем к верхнему регистру и берем первую букву
+    if correct_from_table:
+        correct_clean = correct_from_table.upper()[0]  # Берем только первую букву
     else:
-        response = f"Неверно. Правильный ответ: {correct}"
+        correct_clean = "A"  # Значение по умолчанию
+    
+    user_answer_clean = message.text.upper()[0]
+    
+    print(f"DEBUG: Сравниваем - пользователь: '{user_answer_clean}', правильно: '{correct_clean}'")
+    
+    if user_answer_clean == correct_clean:
+        response = "✅ Верно!"
+    else:
+        response = f"❌ Неверно. Правильный ответ: {correct_clean}"
     
     # Проверяем, есть ли объяснение
-    explanation = state["current"].get("explanation", "").strip()
+    explanation = current_exercise.get("explanation", "").strip()
     
     if explanation:
         await message.answer(
@@ -154,7 +167,7 @@ async def show_explanation(message: types.Message):
     else:
         await message.answer("К сожалению, объяснение для этого задания отсутствует.")
     
-    # После показа объяснения предлагаем вернуться к темам
+    # После объяснения возвращаем к темам
     from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
     await message.answer(
         "Что дальше?",
@@ -179,7 +192,6 @@ async def return_to_topics(message: types.Message, state: dict):
     
     # Очищаем текущее задание
     state.pop("current", None)
-    state.pop("user_answer", None)
     
     if mode == "Конкретные темы":
         exam_filter = "конкретная тема"
@@ -201,6 +213,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
 
 
